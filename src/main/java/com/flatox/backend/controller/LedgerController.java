@@ -40,11 +40,18 @@ public class LedgerController {
         com.flatox.backend.entity.Apartment apt = new com.flatox.backend.entity.Apartment();
         apt.setId(apartmentId);
         plan.setApartment(apt);
+        
+        if (plan.getItems() != null) {
+            for (com.flatox.backend.entity.BudgetItem item : plan.getItems()) {
+                item.setBudgetPlan(plan);
+            }
+        }
+        
         return ResponseEntity.ok(budgetPlanRepository.save(plan));
     }
 
     @GetMapping("/budgets/apartment/{apartmentId}")
     public List<BudgetPlan> getBudgetsByApartment(@PathVariable Long apartmentId) {
-        return budgetPlanRepository.findByApartmentId(apartmentId);
+        return budgetPlanRepository.findByApartmentIdOrderByIdDesc(apartmentId);
     }
 }

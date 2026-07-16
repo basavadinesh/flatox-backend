@@ -20,6 +20,7 @@ public class BudgetItem {
 
     @ManyToOne
     @JoinColumn(name = "budget_plan_id", nullable = false)
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private BudgetPlan budgetPlan;
 
     @Column(nullable = false)

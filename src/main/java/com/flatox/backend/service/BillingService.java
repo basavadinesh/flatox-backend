@@ -51,12 +51,36 @@ public class BillingService {
         List<MaintenanceBill> generatedBills = new ArrayList<>();
 
         for (Flat flat : flats) {
+            BigDecimal finalAmount = BigDecimal.ZERO;
+            
+            if (template.getDistributionMethod() != null) {
+                switch (template.getDistributionMethod()) {
+                    case FLAT_RATE:
+                        finalAmount = template.getAmount() != null ? template.getAmount() : BigDecimal.ZERO;
+                        break;
+                    case PER_SQFT:
+                        if (template.getUnitRate() != null && flat.getSquareFootage() != null) {
+                            finalAmount = template.getUnitRate().multiply(BigDecimal.valueOf(flat.getSquareFootage()));
+                        }
+                        break;
+                    case BY_BHK_TYPE:
+                        // A simplified stub. Usually you'd fetch from template_bhk_rates table.
+                        // Here we just fallback to base amount for dummy implementation.
+                        finalAmount = template.getAmount() != null ? template.getAmount() : BigDecimal.ZERO;
+                        break;
+                    default:
+                        finalAmount = template.getAmount() != null ? template.getAmount() : BigDecimal.ZERO;
+                }
+            } else {
+                finalAmount = template.getAmount() != null ? template.getAmount() : BigDecimal.ZERO;
+            }
+
             MaintenanceBill bill = MaintenanceBill.builder()
                     .apartment(apartment)
                     .flat(flat)
                     .billingTemplate(template)
                     .title(title)
-                    .baseAmount(template.getAmount())
+                    .baseAmount(finalAmount)
                     .dueDate(dueDate)
                     .status(BillStatus.UNPAID)
                     .penaltyAmount(BigDecimal.ZERO)
@@ -64,6 +88,23 @@ public class BillingService {
                     .build();
 
             MaintenanceBill savedBill = billRepository.save(bill);
+
+            if (template.getItems() != null && !template.getItems().isEmpty()) {
+                for (BillingTemplateItem templateItem : template.getItems()) {
+                    BigDecimal itemAmount = templateItem.getAmount();
+                    if (template.getDistributionMethod() == com.flatox.backend.enums.DistributionMethod.PER_SQFT && flat.getSquareFootage() != null) {
+                        itemAmount = itemAmount.multiply(BigDecimal.valueOf(flat.getSquareFootage()));
+                    }
+                    MaintenanceBillItem billItem = MaintenanceBillItem.builder()
+                            .bill(savedBill)
+                            .label(templateItem.getLabel())
+                            .amount(itemAmount)
+                            .build();
+                    savedBill.getItems().add(billItem);
+                }
+                billRepository.save(savedBill);
+            }
+
             generatedBills.add(savedBill);
 
             // Post to double-entry ledger: Debit Maintenance Dues Receivable
@@ -73,9 +114,10 @@ public class BillingService {
                     null,
                     LedgerEntryType.DEBIT,
                     "MAINTENANCE_RECEIVABLE",
-                    template.getAmount(),
+                    finalAmount,
                     "Invoiced flat: " + flat.getFlatNumber() + " for " + title
             );
+
         }
 
         return generatedBills;
@@ -111,5 +153,43 @@ public class BillingService {
                 }
             }
         }
+    }
+    @Transactional
+    public BillingTemplate updateTemplate(Long templateId, BillingTemplate request) {
+        BillingTemplate template = templateRepository.findById(templateId)
+                .orElseThrow(() -> new RuntimeException("Billing template not found"));
+        
+        template.setTitle(request.getTitle());
+        template.setAmount(request.getAmount());
+        template.setFrequency(request.getFrequency());
+        template.setDueDayOfMonth(request.getDueDayOfMonth());
+        template.setGracePeriodDays(request.getGracePeriodDays());
+        template.setLateFeePenalty(request.getLateFeePenalty());
+        
+        // Update items if provided
+        if (request.getItems() != null) {
+            template.getItems().clear();
+            for (BillingTemplateItem item : request.getItems()) {
+                item.setTemplate(template);
+                template.getItems().add(item);
+            }
+        }
+        
+        return templateRepository.save(template);
+    }
+
+    @Transactional
+    public void deleteTemplate(Long templateId) {
+        BillingTemplate template = templateRepository.findById(templateId)
+                .orElseThrow(() -> new RuntimeException("Billing template not found"));
+                
+        // Unlink existing bills so they aren't deleted but no longer point to this template
+        List<MaintenanceBill> bills = billRepository.findByBillingTemplateId(templateId);
+        for (MaintenanceBill bill : bills) {
+            bill.setBillingTemplate(null);
+        }
+        billRepository.saveAll(bills);
+        
+        templateRepository.delete(template);
     }
 }

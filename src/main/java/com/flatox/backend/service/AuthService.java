@@ -194,12 +194,15 @@ public class AuthService {
             }
         }
 
-        User user = userRepository.findByPhone(
+        java.util.Optional<User> userOpt = userRepository.findByPhone(
                 request.getPhone()
-        ).orElseThrow(() ->
-                new RuntimeException(
-                        "User not found"
-                ));
+        );
+        if (userOpt.isEmpty()) {
+            return AuthResponse.builder()
+                    .message("User not found")
+                    .build();
+        }
+        User user = userOpt.get();
 
         String token =
                 jwtService.generateToken(

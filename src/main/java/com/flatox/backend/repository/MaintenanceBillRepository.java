@@ -10,4 +10,5 @@ public interface MaintenanceBillRepository extends JpaRepository<MaintenanceBill
     List<MaintenanceBill> findByFlatId(Long flatId);
     List<MaintenanceBill> findByFlatIdAndStatusIn(Long flatId, List<BillStatus> statuses);
     List<MaintenanceBill> findByApartmentIdAndStatus(Long apartmentId, BillStatus status);
+    List<MaintenanceBill> findByBillingTemplateId(Long templateId);
 }

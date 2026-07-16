@@ -1,0 +1,4 @@
+create table transactions (amount numeric(12,2) not null, apartment_id bigint not null, bill_id bigint, completed_at timestamp(6), created_at timestamp(6), payer_user_id bigint, id uuid not null, gateway_name varchar(255), gateway_payment_id varchar(255), gateway_signature varchar(255), payment_method varchar(255) not null, receipt_number varchar(255) unique, status varchar(255) not null check ((status in ('PENDING','SUCCESS','FAILED','PARTIAL','REFUNDED'))), primary key (id));
+alter table if exists transactions add constraint FKoq3flek1999lilb6f92rfjux7 foreign key (apartment_id) references apartments;
+alter table if exists transactions add constraint FKsqx0e1p2m2o38emnm8n1q7sqo foreign key (bill_id) references maintenance_bills;
+alter table if exists transactions add constraint FKqa860pu395x1alacpg5ux7ahu foreign key (payer_user_id) references users;
