@@ -53,7 +53,9 @@ public class SecurityConfig {
                                                                 "/api/auth/check-phone",
                                                                 "/api/auth/check-email",
                                                                 "/api/apartments/**",
-                                                                "/api/flats/**")
+                                                                "/api/flats/**",
+                                                                "/api/finance/**",
+                                                                "/api/test-setup/**")
                                                 .permitAll()
 
                                                 .anyRequest().authenticated())

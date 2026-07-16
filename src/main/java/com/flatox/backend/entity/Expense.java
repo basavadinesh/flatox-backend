@@ -52,6 +52,33 @@ public class Expense {
 
     private String receiptUrl;
 
+    // --- AI Expense Assistant fields ---
+
+    @Column(length = 20)
+    @Builder.Default
+    private String status = "CONFIRMED"; // DRAFT, CONFIRMED, REJECTED
+
+    private String invoiceNumber;
+
+    private LocalDate billDate;
+
+    private LocalDate dueDate;
+
+    @Column(precision = 12, scale = 2)
+    private BigDecimal taxAmount;
+
+    @Column(length = 100)
+    private String documentType;
+
+    private Double aiConfidence;
+
+    @Column(columnDefinition = "TEXT")
+    private String aiRawJson;
+
+    @Column(length = 20)
+    @Builder.Default
+    private String source = "MANUAL"; // MANUAL, AI_SCAN
+
     private LocalDateTime createdAt;
 
     @PrePersist

@@ -15,6 +15,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Value;
+import com.razorpay.RazorpayClient;
+import com.razorpay.Order;
+import com.razorpay.Utils;
+import org.json.JSONObject;
 
 @Service
 @RequiredArgsConstructor
@@ -25,6 +30,12 @@ public class PaymentService {
     private final UserRepository userRepository;
     private final ApartmentRepository apartmentRepository;
     private final LedgerService ledgerService;
+
+    @Value("${razorpay.key.id}")
+    private String razorpayKeyId;
+
+    @Value("${razorpay.key.secret}")
+    private String razorpayKeySecret;
 
     /**
      * Initializes a transaction order record.
@@ -47,6 +58,21 @@ public class PaymentService {
                 .createdAt(LocalDateTime.now())
                 .build();
 
+        try {
+            RazorpayClient razorpay = new RazorpayClient(razorpayKeyId, razorpayKeySecret);
+            JSONObject orderRequest = new JSONObject();
+            // Amount in paise
+            orderRequest.put("amount", amount.multiply(BigDecimal.valueOf(100)).intValue());
+            orderRequest.put("currency", "INR");
+            orderRequest.put("receipt", "txn_" + System.currentTimeMillis());
+
+            Order order = razorpay.orders.create(orderRequest);
+            tx.setGatewayOrderId(order.get("id"));
+            tx.setGatewayName("RAZORPAY");
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to initiate Razorpay order: " + e.getMessage());
+        }
+
         return transactionRepository.save(tx);
     }
 
@@ -62,7 +88,20 @@ public class PaymentService {
             return tx;
         }
 
-        // Simulate Gateway Signature verification (production will check hmac)
+        try {
+            JSONObject options = new JSONObject();
+            options.put("razorpay_order_id", tx.getGatewayOrderId());
+            options.put("razorpay_payment_id", gatewayPaymentId);
+            options.put("razorpay_signature", gatewaySignature);
+            
+            boolean status = Utils.verifyPaymentSignature(options, razorpayKeySecret);
+            if (!status) {
+                throw new RuntimeException("Payment signature verification failed");
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Invalid payment signature: " + e.getMessage());
+        }
+
         tx.setGatewayPaymentId(gatewayPaymentId);
         tx.setGatewaySignature(gatewaySignature);
         tx.setStatus(PaymentStatus.SUCCESS);

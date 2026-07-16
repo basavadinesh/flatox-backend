@@ -45,6 +45,8 @@ public class Transaction {
 
     private String gatewayName; // 'RAZORPAY', 'CASHFREE', etc.
 
+    private String gatewayOrderId;
+
     private String gatewayPaymentId;
 
     private String gatewaySignature;

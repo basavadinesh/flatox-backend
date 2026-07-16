@@ -6,6 +6,8 @@ import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "budget_plans")
@@ -35,6 +37,10 @@ public class BudgetPlan {
 
     @Column(nullable = false, precision = 15, scale = 2)
     private BigDecimal totalAllocatedExpense;
+
+    @OneToMany(mappedBy = "budgetPlan", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<BudgetItem> items = new ArrayList<>();
 
     @ManyToOne
     @JoinColumn(name = "created_by_user_id")

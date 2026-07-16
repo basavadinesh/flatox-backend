@@ -1,3 +1,4 @@
+
 package com.flatox.backend.entity;
 
 import com.flatox.backend.enums.VendorContractStatus;

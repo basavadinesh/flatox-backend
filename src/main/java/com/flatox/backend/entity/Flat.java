@@ -29,8 +29,10 @@ public class Flat {
     @JoinColumn(name = "apartment_id")
     private Apartment apartment;
 
-    
+    @Column(name = "square_footage")
+    private Double squareFootage;
 
-    
+    @Column(name = "bhk_type")
+    private String bhkType;
 
 }

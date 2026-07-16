@@ -73,4 +73,25 @@ public class BillingController {
     public List<MaintenanceBill> getBillsByFlat(@PathVariable Long flatId) {
         return billRepository.findByFlatId(flatId);
     }
+    @PutMapping("/billing-templates/{templateId}")
+    public ResponseEntity<BillingTemplate> updateTemplate(
+            @PathVariable Long templateId,
+            @RequestBody BillingTemplateRequest request
+    ) {
+        BillingTemplate template = BillingTemplate.builder()
+                .title(request.getTitle())
+                .amount(request.getAmount())
+                .frequency(request.getFrequency())
+                .dueDayOfMonth(request.getDueDayOfMonth())
+                .gracePeriodDays(request.getGracePeriodDays())
+                .lateFeePenalty(request.getLateFeePenalty())
+                .build();
+        return ResponseEntity.ok(billingService.updateTemplate(templateId, template));
+    }
+
+    @DeleteMapping("/billing-templates/{templateId}")
+    public ResponseEntity<String> deleteTemplate(@PathVariable Long templateId) {
+        billingService.deleteTemplate(templateId);
+        return ResponseEntity.ok("Template deleted successfully");
+    }
 }
